@@ -11,6 +11,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.auth.providers.builtin.OTP
+import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.postgrest.postgrest
 import com.gitaconnect.app.supabasecentral.SupabaseManager
 
@@ -106,6 +108,12 @@ class ProfileViewModel : ViewModel() {
     private val _authError = MutableStateFlow<String?>(null)
     val authError: StateFlow<String?> = _authError.asStateFlow()
 
+    private val _isOtpSent = MutableStateFlow(false)
+    val isOtpSent: StateFlow<Boolean> = _isOtpSent.asStateFlow()
+
+    private val _lastOtpSentTime = MutableStateFlow<Long?>(null)
+    val lastOtpSentTime: StateFlow<Long?> = _lastOtpSentTime.asStateFlow()
+
     // Accessibility state
     private val _isBoldAndContrastEnabled = MutableStateFlow(false)
     val isBoldAndContrastEnabled: StateFlow<Boolean> = _isBoldAndContrastEnabled.asStateFlow()
@@ -192,17 +200,109 @@ class ProfileViewModel : ViewModel() {
         }
     }
 
-    fun loginWithEmail(emailInput: String, passwordInput: String) {
+    fun sendOtp(emailInput: String, shouldCreateUser: Boolean) {
         viewModelScope.launch {
             _isLoading.value = true
             _authError.value = null
             try {
-                SupabaseManager.client.auth.signInWith(Email) {
-                    email = emailInput
-                    password = passwordInput
+                // Cooldown check: 60 seconds
+                val lastSend = _lastOtpSentTime.value
+                if (lastSend != null) {
+                    val elapsed = (System.currentTimeMillis() - lastSend) / 1000
+                    if (elapsed < 60) {
+                        _authError.value = "Please wait ${60 - elapsed} seconds before requesting another OTP."
+                        return@launch
+                    }
                 }
+
+                // If signing up, first check if user exists in the profiles database
+                if (shouldCreateUser) {
+                    val emailExists = checkEmailExists(emailInput)
+                    if (emailExists) {
+                        _authError.value = "An account with this email already exists. Please log in instead."
+                        return@launch
+                    }
+                }
+
+                // Call Supabase OTP send
+                SupabaseManager.client.auth.signInWith(OTP) {
+                    email = emailInput
+                    createUser = shouldCreateUser
+                }
+                
+                _lastOtpSentTime.value = System.currentTimeMillis()
+                _isOtpSent.value = true
+            } catch (e: Exception) {
+                val msg = e.localizedMessage ?: "Unknown OTP error"
+                if (!shouldCreateUser && (
+                    msg.contains("user_not_found") || 
+                    msg.contains("User not found") || 
+                    msg.contains("Signups not allowed")
+                )) {
+                    _authError.value = "We couldn't find an account matching that email. Please create an account to get started."
+                } else {
+                    _authError.value = msg
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    private suspend fun checkEmailExists(email: String): Boolean {
+        return try {
+            val result = SupabaseManager.client.postgrest.from("profiles")
+                .select {
+                    filter {
+                        eq("email", email)
+                    }
+                }.decodeList<DbProfile>()
+            result.isNotEmpty()
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun verifyOtp(emailInput: String, otpToken: String, nameInput: String, isSignUpMode: Boolean) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _authError.value = null
+            try {
+                SupabaseManager.client.auth.verifyEmailOtp(
+                    type = OtpType.Email.EMAIL,
+                    email = emailInput,
+                    token = otpToken
+                )
+                
                 val user = SupabaseManager.client.auth.currentUserOrNull()
                 if (user != null) {
+                    if (isSignUpMode) {
+                        // Create profile and level data
+                        val newProfile = DbProfile(
+                            userId = user.id,
+                            name = nameInput,
+                            displayName = nameInput,
+                            email = emailInput
+                        )
+                        try {
+                            SupabaseManager.client.postgrest.from("profiles").insert(newProfile)
+                        } catch (e: Exception) {
+                            // ignore
+                        }
+
+                        val newLevelData = DbUserLevelData(
+                            userId = user.id,
+                            totalXp = 0,
+                            currentStreak = 0,
+                            longestStreak = 0
+                        )
+                        try {
+                            SupabaseManager.client.postgrest.from("user_level_data").insert(newLevelData)
+                        } catch (e: Exception) {
+                            // ignore
+                        }
+                    }
+                    
                     _isAuthenticated.value = true
                     fetchUserProfile(user.id)
                     _currentScreen.value = Screen.PROFILE
@@ -210,62 +310,16 @@ class ProfileViewModel : ViewModel() {
                     _authError.value = "Failed to retrieve user session."
                 }
             } catch (e: Exception) {
-                _authError.value = e.localizedMessage ?: "Unknown login error"
+                _authError.value = "Verification failed. Invalid or expired OTP."
             } finally {
                 _isLoading.value = false
             }
         }
     }
 
-    fun signUpWithEmail(emailInput: String, passwordInput: String, nameInput: String) {
-        viewModelScope.launch {
-            _isLoading.value = true
-            _authError.value = null
-            try {
-                SupabaseManager.client.auth.signUpWith(Email) {
-                    email = emailInput
-                    password = passwordInput
-                }
-                val user = SupabaseManager.client.auth.currentUserOrNull()
-                if (user != null) {
-                    // Try inserting user profile row
-                    val newProfile = DbProfile(
-                        userId = user.id,
-                        name = nameInput,
-                        displayName = nameInput,
-                        email = emailInput
-                    )
-                    try {
-                        SupabaseManager.client.postgrest.from("profiles").insert(newProfile)
-                    } catch (e: Exception) {
-                        // ignore
-                    }
-
-                    // Try inserting user level row
-                    val newLevelData = DbUserLevelData(
-                        userId = user.id,
-                        totalXp = 0,
-                        currentStreak = 0,
-                        longestStreak = 0
-                    )
-                    try {
-                        SupabaseManager.client.postgrest.from("user_level_data").insert(newLevelData)
-                    } catch (e: Exception) {
-                        // ignore
-                    }
-
-                    _isAuthenticated.value = true
-                    fetchUserProfile(user.id)
-                    _currentScreen.value = Screen.PROFILE
-                } else {
-                    _authError.value = "Registration succeeded! Please check your email inbox to confirm registration."
-                }
-            } catch (e: Exception) {
-                _authError.value = e.localizedMessage ?: "Unknown registration error"
-            } finally {
-                _isLoading.value = false
-            }
-        }
+    fun resetOtpState() {
+        _isOtpSent.value = false
+        _authError.value = null
     }
 
     fun navigateTo(screen: Screen) {
