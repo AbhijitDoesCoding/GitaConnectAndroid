@@ -25,6 +25,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.gitaconnect.app.profilepage.*
 import com.gitaconnect.app.feed.FeedScreen
 
 sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
@@ -92,7 +95,20 @@ fun MainScreen() {
             composable(BottomNavItem.Home.route) { PlaceholderScreen("Home") }
             composable(BottomNavItem.Mentor.route) { PlaceholderScreen("Gita Mentor") }
             composable(BottomNavItem.Feed.route) { FeedScreen() }
-            composable(BottomNavItem.Profile.route) { PlaceholderScreen("Profile") }
+            composable(BottomNavItem.Profile.route) {
+                val profileViewModel: ProfileViewModel = viewModel()
+                val currentScreen by profileViewModel.currentScreen.collectAsState()
+                
+                when (currentScreen) {
+                    Screen.PROFILE -> ProfileScreen(viewModel = profileViewModel)
+                    Screen.PERSONAL_INFO -> PersonalInfoScreen(viewModel = profileViewModel)
+                    Screen.LIKED -> LikedScreen(viewModel = profileViewModel)
+                    Screen.STATS -> StatsScreen(viewModel = profileViewModel)
+                    Screen.ACCESSIBILITY -> AccessibilityScreen(viewModel = profileViewModel)
+                    Screen.NOTIFICATIONS -> NotificationsScreen(viewModel = profileViewModel)
+                    Screen.ABOUT -> AboutScreen(viewModel = profileViewModel)
+                }
+            }
         }
     }
 }
