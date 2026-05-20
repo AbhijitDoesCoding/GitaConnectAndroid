@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.gitaconnect.app.ui.theme.GitaConnectTheme
-import com.gitaconnect.app.feed.FeedScreen
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,14 +20,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             GitaConnectTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    // Wrapping FeedScreen with padding to respect system bars (status bar, navigation bar)
-                    androidx.compose.foundation.layout.Box(
-                        modifier = Modifier.padding(innerPadding).fillMaxSize()
-                    ) {
-                        FeedScreen()
-                    }
-                }
+                MainScreen()
             }
         }
     }

@@ -12,8 +12,8 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class FeedItem(
-    @SerialName("feed_item_id") val id: String,
-    @SerialName("video_url") val videoURL: String,
+    @SerialName("feed_item_id") val id: Long,
+    @SerialName("video_url") val videoURL: String? = null,
     val title: String? = null,
     val learnings: String? = null
 )

@@ -9,12 +9,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,45 +50,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.MediaItem
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import kotlinx.coroutines.launch
-
-// ---------------------------------------------------------------------------
-// Supabase stub – replace with your real SupabaseManager calls.
-// ---------------------------------------------------------------------------
-
-/** Placeholder that you can swap for a real Supabase client later. */
-object SupabaseManager {
-    // e.g. val client = createSupabaseClient(url, key) { install(Postgrest) }
-}
-
-/**
- * Fetches feed items from the backend.
- * Replace the stub list with a real Supabase Postgrest select call.
- */
-suspend fun fetchFeedData(): List<FeedItem> {
-    // TODO: val result = SupabaseManager.client
-    //     .from("feed_items")
-    //     .select()
-    //     .decodeList<FeedItem>()
-    // return result
-    return listOf(
-        FeedItem(
-            id = "demo-1",
-            videoURL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
-            title = "Big Buck Bunny",
-            learnings = "This is a sample learning note for the first video.\n\nReplace this with real content from your Supabase table."
-        ),
-        FeedItem(
-            id = "demo-2",
-            videoURL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-            title = "Elephants Dream",
-            learnings = "Second demo video learning notes.\n\nWire up fetchFeedData() to your Supabase backend to see real content."
-        )
-    )
-}
 
 // ---------------------------------------------------------------------------
 // FeedScreen
@@ -89,22 +64,15 @@ suspend fun fetchFeedData(): List<FeedItem> {
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
-fun FeedScreen() {
+fun FeedScreen(viewModel: FeedViewModel = viewModel()) {
     val context = LocalContext.current
 
-    // ---- State ----
-    val feedItems = remember { mutableStateListOf<FeedItem>() }
-    var isLoading by remember { mutableStateOf(true) }
+    // ---- State from ViewModel ----
+    val feedItems by viewModel.feedItems.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     // Map from page index → borrowed ExoPlayer
     val players = remember { mutableMapOf<Int, ExoPlayer>() }
-
-    // ---- Load data on first composition ----
-    LaunchedEffect(Unit) {
-        val items = fetchFeedData()
-        feedItems.addAll(items)
-        isLoading = false
-    }
 
     // ---- Pager ----
     val pagerState = rememberPagerState(pageCount = { feedItems.size })
@@ -175,15 +143,36 @@ private fun FeedPageItem(
     // ---- Obtain a player from the pool ----
     val player = remember {
         VideoPlayerPool.getPlayer(context).also { exoPlayer ->
-            exoPlayer.setMediaItem(MediaItem.fromUri(item.videoURL))
-            exoPlayer.prepare()
+            item.videoURL?.let { url ->
+                exoPlayer.setMediaItem(MediaItem.fromUri(url))
+                exoPlayer.prepare()
+            }
             onPlayerReady(exoPlayer)
         }
     }
 
-    // ---- Play / pause based on page visibility ----
-    LaunchedEffect(isCurrentPage) {
-        if (isCurrentPage) player.play() else player.pause()
+    // ---- App Lifecycle Control (onPause/onResume) & Autoplay ----
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, isCurrentPage) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> if (isCurrentPage) player.play()
+                Lifecycle.Event.ON_PAUSE -> player.pause()
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        
+        // Also trigger play/pause immediately when page visibility changes
+        if (isCurrentPage && lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            player.play()
+        } else {
+            player.pause()
+        }
+        
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     // ---- Return player to pool when this composable leaves composition ----
@@ -194,6 +183,9 @@ private fun FeedPageItem(
         }
     }
 
+    // ---- Like State (isolated boolean tracker) ----
+    var isLiked by remember { mutableStateOf(false) }
+
     Box(modifier = Modifier.fillMaxSize()) {
 
         // ---- Video surface (double-tap = like) ----
@@ -202,6 +194,7 @@ private fun FeedPageItem(
                 PlayerView(ctx).apply {
                     this.player = player
                     useController = false
+                    resizeMode = androidx.media3.ui.AspectRatioFrameLayout.RESIZE_MODE_ZOOM
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT
@@ -212,7 +205,10 @@ private fun FeedPageItem(
                 .fillMaxSize()
                 .pointerInput(Unit) {
                     detectTapGestures(
-                        onDoubleTap = { onLikeItem(item) }
+                        onDoubleTap = {
+                            isLiked = !isLiked
+                            onLikeItem(item)
+                        }
                     )
                 }
         )
@@ -221,9 +217,24 @@ private fun FeedPageItem(
         Column(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(end = 12.dp, bottom = 96.dp),
+                .padding(end = 12.dp, bottom = 48.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Like Toggle
+            IconButton(
+                onClick = {
+                    isLiked = !isLiked
+                    onLikeItem(item)
+                },
+                modifier = Modifier.size(52.dp)
+            ) {
+                Icon(
+                    imageVector = if (isLiked) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder,
+                    contentDescription = "Like",
+                    tint = if (isLiked) Color.Red else Color.White,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
             // Share (single tap)
             IconButton(
                 onClick = { shareItem(context, item) },
@@ -263,7 +274,7 @@ private fun FeedPageItem(
                 fontSize = 16.sp,
                 modifier = Modifier
                     .align(Alignment.BottomStart)
-                    .padding(start = 16.dp, bottom = 96.dp, end = 72.dp)
+                    .padding(start = 16.dp, bottom = 48.dp, end = 72.dp)
             )
         }
     }
@@ -301,6 +312,7 @@ private fun onLikeItem(item: FeedItem) {
 
 /** Opens Android's native share sheet with the video URL. */
 private fun shareItem(context: Context, item: FeedItem) {
+    if (item.videoURL.isNullOrBlank()) return
     val sendIntent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_TEXT, item.videoURL)
