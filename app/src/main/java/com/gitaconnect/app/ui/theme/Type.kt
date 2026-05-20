@@ -1,4 +1,4 @@
-package com.team18.GitaConnect.ui.theme
+package com.gitaconnect.app.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

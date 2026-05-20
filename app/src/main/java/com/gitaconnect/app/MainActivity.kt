@@ -1,4 +1,4 @@
-package com.team18.GitaConnect
+package com.gitaconnect.app
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -11,19 +11,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.team18.GitaConnect.ui.theme.MyApplicationTheme
+import com.gitaconnect.app.ui.theme.GitaConnectTheme
+import com.gitaconnect.app.feed.FeedScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MyApplicationTheme {
+            GitaConnectTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    // Wrapping FeedScreen with padding to respect system bars (status bar, navigation bar)
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier.padding(innerPadding).fillMaxSize()
+                    ) {
+                        FeedScreen()
+                    }
                 }
             }
         }
@@ -41,7 +44,7 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
-    MyApplicationTheme {
+    GitaConnectTheme {
         Greeting("Android")
     }
 }

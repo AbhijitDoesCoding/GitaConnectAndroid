@@ -1,4 +1,4 @@
-package com.team18.GitaConnect
+package com.team18.gitaconnect
 
 import org.junit.Test
 
