@@ -84,9 +84,9 @@ fun GlassCard(
         modifier = cardModifier,
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.45f)
+            containerColor = Color.White
         ),
-        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f))
+        border = BorderStroke(1.dp, Color(0xFFECE4D9))
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

@@ -5,6 +5,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import io.github.jan.supabase.auth.auth
+import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.postgrest.postgrest
+import com.gitaconnect.app.supabasecentral.SupabaseManager
 
 enum class Screen {
     PROFILE,
@@ -49,6 +57,26 @@ data class Reminder(
         }
 }
 
+@Serializable
+data class DbProfile(
+    @SerialName("user_id") val userId: String,
+    val name: String? = "",
+    @SerialName("display_name") val displayName: String? = "",
+    val email: String? = "",
+    val phone: String? = "",
+    @SerialName("date_of_birth") val dateOfBirth: String? = "",
+    val gender: String? = "",
+    @SerialName("profile_image_url") val profileImageUrl: String? = null
+)
+
+@Serializable
+data class DbUserLevelData(
+    @SerialName("user_id") val userId: String,
+    @SerialName("total_xp") val totalXp: Int = 0,
+    @SerialName("current_streak") val currentStreak: Int = 0,
+    @SerialName("longest_streak") val longestStreak: Int = 0
+)
+
 data class UserProfile(
     val name: String,
     val email: String,
@@ -56,25 +84,27 @@ data class UserProfile(
     val profileImageUrl: String?,
     val dateOfBirth: String,
     val gender: String,
-    val totalXP: Int = 1250 // Mock XP
+    val totalXP: Int = 0,
+    val currentStreak: Int = 0,
+    val longestStreak: Int = 0
 )
 
 class ProfileViewModel : ViewModel() {
     private val _currentScreen = MutableStateFlow(Screen.PROFILE)
     val currentScreen: StateFlow<Screen> = _currentScreen.asStateFlow()
 
-    private val _userProfile = MutableStateFlow<UserProfile?>(
-        UserProfile(
-            name = "Abhinav Kumar",
-            email = "abhinav@gitaconnect.com",
-            phone = "+91 98765 43210",
-            profileImageUrl = null,
-            dateOfBirth = "15-08-2002",
-            gender = "Male",
-            totalXP = 1340
-        )
-    )
+    private val _userProfile = MutableStateFlow<UserProfile?>(null)
     val userProfile: StateFlow<UserProfile?> = _userProfile.asStateFlow()
+
+    // Auth States
+    private val _isAuthenticated = MutableStateFlow(false)
+    val isAuthenticated: StateFlow<Boolean> = _isAuthenticated.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    private val _authError = MutableStateFlow<String?>(null)
+    val authError: StateFlow<String?> = _authError.asStateFlow()
 
     // Accessibility state
     private val _isBoldAndContrastEnabled = MutableStateFlow(false)
@@ -99,22 +129,204 @@ class ProfileViewModel : ViewModel() {
     )
     val reminders: StateFlow<List<Reminder>> = _reminders.asStateFlow()
 
+    init {
+        checkActiveSession()
+    }
+
+    fun checkActiveSession() {
+        viewModelScope.launch {
+            try {
+                val sessionUser = SupabaseManager.client.auth.currentUserOrNull()
+                if (sessionUser != null) {
+                    _isAuthenticated.value = true
+                    fetchUserProfile(sessionUser.id)
+                } else {
+                    _isAuthenticated.value = false
+                    _userProfile.value = null
+                }
+            } catch (e: Exception) {
+                _isAuthenticated.value = false
+                _userProfile.value = null
+            }
+        }
+    }
+
+    fun fetchUserProfile(userId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                // Fetch basic profile
+                val profileResult = SupabaseManager.client.postgrest.from("profiles")
+                    .select {
+                        filter {
+                            eq("user_id", userId)
+                        }
+                    }.decodeSingleOrNull<DbProfile>()
+
+                // Fetch level data
+                val levelResult = SupabaseManager.client.postgrest.from("user_level_data")
+                    .select {
+                        filter {
+                            eq("user_id", userId)
+                        }
+                    }.decodeSingleOrNull<DbUserLevelData>()
+
+                if (profileResult != null) {
+                    _userProfile.value = UserProfile(
+                        name = profileResult.name ?: "Gita Seeker",
+                        email = profileResult.email ?: "",
+                        phone = profileResult.phone ?: "",
+                        profileImageUrl = profileResult.profileImageUrl,
+                        dateOfBirth = profileResult.dateOfBirth ?: "",
+                        gender = profileResult.gender ?: "",
+                        totalXP = levelResult?.totalXp ?: 0,
+                        currentStreak = levelResult?.currentStreak ?: 0,
+                        longestStreak = levelResult?.longestStreak ?: 0
+                    )
+                }
+            } catch (e: Exception) {
+                // Handle or fallback
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun loginWithEmail(emailInput: String, passwordInput: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _authError.value = null
+            try {
+                SupabaseManager.client.auth.signInWith(Email) {
+                    email = emailInput
+                    password = passwordInput
+                }
+                val user = SupabaseManager.client.auth.currentUserOrNull()
+                if (user != null) {
+                    _isAuthenticated.value = true
+                    fetchUserProfile(user.id)
+                    _currentScreen.value = Screen.PROFILE
+                } else {
+                    _authError.value = "Failed to retrieve user session."
+                }
+            } catch (e: Exception) {
+                _authError.value = e.localizedMessage ?: "Unknown login error"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    fun signUpWithEmail(emailInput: String, passwordInput: String, nameInput: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _authError.value = null
+            try {
+                SupabaseManager.client.auth.signUpWith(Email) {
+                    email = emailInput
+                    password = passwordInput
+                }
+                val user = SupabaseManager.client.auth.currentUserOrNull()
+                if (user != null) {
+                    // Try inserting user profile row
+                    val newProfile = DbProfile(
+                        userId = user.id,
+                        name = nameInput,
+                        displayName = nameInput,
+                        email = emailInput
+                    )
+                    try {
+                        SupabaseManager.client.postgrest.from("profiles").insert(newProfile)
+                    } catch (e: Exception) {
+                        // ignore
+                    }
+
+                    // Try inserting user level row
+                    val newLevelData = DbUserLevelData(
+                        userId = user.id,
+                        totalXp = 0,
+                        currentStreak = 0,
+                        longestStreak = 0
+                    )
+                    try {
+                        SupabaseManager.client.postgrest.from("user_level_data").insert(newLevelData)
+                    } catch (e: Exception) {
+                        // ignore
+                    }
+
+                    _isAuthenticated.value = true
+                    fetchUserProfile(user.id)
+                    _currentScreen.value = Screen.PROFILE
+                } else {
+                    _authError.value = "Registration succeeded! Please check your email inbox to confirm registration."
+                }
+            } catch (e: Exception) {
+                _authError.value = e.localizedMessage ?: "Unknown registration error"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     fun navigateTo(screen: Screen) {
         _currentScreen.value = screen
     }
 
     fun updateProfile(name: String, email: String, phone: String, dateOfBirth: String, gender: String) {
-        _userProfile.value = _userProfile.value?.copy(
-            name = name,
-            email = email,
-            phone = phone,
-            dateOfBirth = dateOfBirth,
-            gender = gender
-        )
+        val userId = SupabaseManager.client.auth.currentUserOrNull()?.id ?: return
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val updated = DbProfile(
+                    userId = userId,
+                    name = name,
+                    displayName = name,
+                    email = email,
+                    phone = phone,
+                    dateOfBirth = dateOfBirth,
+                    gender = gender,
+                    profileImageUrl = _userProfile.value?.profileImageUrl
+                )
+                SupabaseManager.client.postgrest.from("profiles").upsert(updated)
+                
+                // Update local state
+                _userProfile.value = _userProfile.value?.copy(
+                    name = name,
+                    email = email,
+                    phone = phone,
+                    dateOfBirth = dateOfBirth,
+                    gender = gender
+                )
+                _currentScreen.value = Screen.PROFILE
+            } catch (e: Exception) {
+                // ignore
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     fun updateProfileImage(url: String?) {
-        _userProfile.value = _userProfile.value?.copy(profileImageUrl = url)
+        val userId = SupabaseManager.client.auth.currentUserOrNull()?.id ?: return
+        viewModelScope.launch {
+            try {
+                val current = _userProfile.value ?: return@launch
+                val updated = DbProfile(
+                    userId = userId,
+                    name = current.name,
+                    displayName = current.name,
+                    email = current.email,
+                    phone = current.phone,
+                    dateOfBirth = current.dateOfBirth,
+                    gender = current.gender,
+                    profileImageUrl = url
+                )
+                SupabaseManager.client.postgrest.from("profiles").upsert(updated)
+                _userProfile.value = _userProfile.value?.copy(profileImageUrl = url)
+            } catch (e: Exception) {
+                // ignore
+            }
+        }
     }
 
     fun setBoldAndContrastEnabled(enabled: Boolean) {
@@ -146,18 +358,15 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun logout() {
-        _userProfile.value = null
-    }
-
-    fun login() {
-        _userProfile.value = UserProfile(
-            name = "Abhinav Kumar",
-            email = "abhinav@gitaconnect.com",
-            phone = "+91 98765 43210",
-            profileImageUrl = null,
-            dateOfBirth = "15-08-2002",
-            gender = "Male",
-            totalXP = 1340
-        )
+        viewModelScope.launch {
+            try {
+                SupabaseManager.client.auth.signOut()
+            } catch (e: Exception) {
+                // ignore
+            }
+            _isAuthenticated.value = false
+            _userProfile.value = null
+            _currentScreen.value = Screen.PROFILE
+        }
     }
 }

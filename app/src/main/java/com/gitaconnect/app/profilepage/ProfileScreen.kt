@@ -63,13 +63,11 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (userProfile != null) {
-                    MenuItemCard(
-                        title = "User Profile",
-                        icon = Icons.Default.Person,
-                        onClick = { viewModel.navigateTo(Screen.PERSONAL_INFO) }
-                    )
-                }
+                MenuItemCard(
+                    title = "User Profile",
+                    icon = Icons.Default.Person,
+                    onClick = { viewModel.navigateTo(Screen.PERSONAL_INFO) }
+                )
 
                 MenuItemCard(
                     title = "Liked Verses",
@@ -103,20 +101,12 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                if (userProfile != null) {
-                    MenuItemCard(
-                        title = "Log Out",
-                        icon = Icons.Default.ExitToApp,
-                        isDestructive = true,
-                        onClick = { viewModel.logout() }
-                    )
-                } else {
-                    MenuItemCard(
-                        title = "Log In",
-                        icon = Icons.Default.Lock,
-                        onClick = { viewModel.login() }
-                    )
-                }
+                MenuItemCard(
+                    title = "Log Out",
+                    icon = Icons.Default.ExitToApp,
+                    isDestructive = true,
+                    onClick = { viewModel.logout() }
+                )
             }
 
             Spacer(modifier = Modifier.height(30.dp))
