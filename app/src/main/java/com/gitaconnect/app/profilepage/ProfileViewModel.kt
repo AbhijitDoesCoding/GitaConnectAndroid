@@ -23,7 +23,8 @@ enum class Screen {
     STATS,
     ACCESSIBILITY,
     NOTIFICATIONS,
-    ABOUT
+    ABOUT,
+    LOGIN
 }
 
 enum class ReminderType(val value: String) {

@@ -63,29 +63,31 @@ fun ProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                MenuItemCard(
-                    title = "User Profile",
-                    icon = Icons.Default.Person,
-                    onClick = { viewModel.navigateTo(Screen.PERSONAL_INFO) }
-                )
+                if (userProfile != null) {
+                    MenuItemCard(
+                        title = "User Profile",
+                        icon = Icons.Default.Person,
+                        onClick = { viewModel.navigateTo(Screen.PERSONAL_INFO) }
+                    )
 
-                MenuItemCard(
-                    title = "Liked Verses",
-                    icon = Icons.Default.Favorite,
-                    onClick = { viewModel.navigateTo(Screen.LIKED) }
-                )
+                    MenuItemCard(
+                        title = "Liked Verses",
+                        icon = Icons.Default.Favorite,
+                        onClick = { viewModel.navigateTo(Screen.LIKED) }
+                    )
 
-                MenuItemCard(
-                    title = "Spiritual Stats",
-                    icon = Icons.Default.Star, // Representing stats/XP achievements
-                    onClick = { viewModel.navigateTo(Screen.STATS) }
-                )
+                    MenuItemCard(
+                        title = "Spiritual Stats",
+                        icon = Icons.Default.Star, // Representing stats/XP achievements
+                        onClick = { viewModel.navigateTo(Screen.STATS) }
+                    )
 
-                MenuItemCard(
-                    title = "Notifications & Reminders",
-                    icon = Icons.Default.Notifications,
-                    onClick = { viewModel.navigateTo(Screen.NOTIFICATIONS) }
-                )
+                    MenuItemCard(
+                        title = "Notifications & Reminders",
+                        icon = Icons.Default.Notifications,
+                        onClick = { viewModel.navigateTo(Screen.NOTIFICATIONS) }
+                    )
+                }
 
                 MenuItemCard(
                     title = "Accessibility Settings",
@@ -101,12 +103,20 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                MenuItemCard(
-                    title = "Log Out",
-                    icon = Icons.Default.ExitToApp,
-                    isDestructive = true,
-                    onClick = { viewModel.logout() }
-                )
+                if (userProfile != null) {
+                    MenuItemCard(
+                        title = "Log Out",
+                        icon = Icons.Default.ExitToApp,
+                        isDestructive = true,
+                        onClick = { viewModel.logout() }
+                    )
+                } else {
+                    MenuItemCard(
+                        title = "Log In",
+                        icon = Icons.Default.Lock,
+                        onClick = { viewModel.navigateTo(Screen.LOGIN) }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(30.dp))

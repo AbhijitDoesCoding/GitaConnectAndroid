@@ -98,21 +98,17 @@ fun MainScreen() {
             composable(BottomNavItem.Feed.route) { FeedScreen() }
             composable(BottomNavItem.Profile.route) {
                 val profileViewModel: ProfileViewModel = viewModel()
-                val isAuthenticated by profileViewModel.isAuthenticated.collectAsState()
+                val currentScreen by profileViewModel.currentScreen.collectAsState()
                 
-                if (!isAuthenticated) {
-                    LoginScreen(viewModel = profileViewModel)
-                } else {
-                    val currentScreen by profileViewModel.currentScreen.collectAsState()
-                    when (currentScreen) {
-                        Screen.PROFILE -> ProfileScreen(viewModel = profileViewModel)
-                        Screen.PERSONAL_INFO -> PersonalInfoScreen(viewModel = profileViewModel)
-                        Screen.LIKED -> LikedScreen(viewModel = profileViewModel)
-                        Screen.STATS -> StatsScreen(viewModel = profileViewModel)
-                        Screen.ACCESSIBILITY -> AccessibilityScreen(viewModel = profileViewModel)
-                        Screen.NOTIFICATIONS -> NotificationsScreen(viewModel = profileViewModel)
-                        Screen.ABOUT -> AboutScreen(viewModel = profileViewModel)
-                    }
+                when (currentScreen) {
+                    Screen.PROFILE -> ProfileScreen(viewModel = profileViewModel)
+                    Screen.LOGIN -> LoginScreen(viewModel = profileViewModel)
+                    Screen.PERSONAL_INFO -> PersonalInfoScreen(viewModel = profileViewModel)
+                    Screen.LIKED -> LikedScreen(viewModel = profileViewModel)
+                    Screen.STATS -> StatsScreen(viewModel = profileViewModel)
+                    Screen.ACCESSIBILITY -> AccessibilityScreen(viewModel = profileViewModel)
+                    Screen.NOTIFICATIONS -> NotificationsScreen(viewModel = profileViewModel)
+                    Screen.ABOUT -> AboutScreen(viewModel = profileViewModel)
                 }
             }
         }
