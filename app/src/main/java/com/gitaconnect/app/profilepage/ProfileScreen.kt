@@ -69,25 +69,25 @@ fun ProfileScreen(
                         icon = Icons.Default.Person,
                         onClick = { viewModel.navigateTo(Screen.PERSONAL_INFO) }
                     )
-
-                    MenuItemCard(
-                        title = "Liked Verses",
-                        icon = Icons.Default.Favorite,
-                        onClick = { viewModel.navigateTo(Screen.LIKED) }
-                    )
-
-                    MenuItemCard(
-                        title = "Spiritual Stats",
-                        icon = Icons.Default.Star, // Representing stats/XP achievements
-                        onClick = { viewModel.navigateTo(Screen.STATS) }
-                    )
-
-                    MenuItemCard(
-                        title = "Notifications & Reminders",
-                        icon = Icons.Default.Notifications,
-                        onClick = { viewModel.navigateTo(Screen.NOTIFICATIONS) }
-                    )
                 }
+
+                MenuItemCard(
+                    title = "Liked Verses",
+                    icon = Icons.Default.Favorite,
+                    onClick = { viewModel.navigateTo(Screen.LIKED) }
+                )
+
+                MenuItemCard(
+                    title = "Spiritual Stats",
+                    icon = Icons.Default.Star, // Representing stats/XP achievements
+                    onClick = { viewModel.navigateTo(Screen.STATS) }
+                )
+
+                MenuItemCard(
+                    title = "Notifications & Reminders",
+                    icon = Icons.Default.Notifications,
+                    onClick = { viewModel.navigateTo(Screen.NOTIFICATIONS) }
+                )
 
                 MenuItemCard(
                     title = "Accessibility Settings",
