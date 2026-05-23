@@ -1,3 +1,4 @@
+@file:Suppress("SpellCheckingInspection")
 package com.gitaconnect.app.profilepage
 
 import androidx.compose.foundation.layout.*

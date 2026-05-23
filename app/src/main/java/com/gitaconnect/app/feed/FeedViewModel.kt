@@ -1,3 +1,4 @@
+@file:Suppress("SpellCheckingInspection")
 package com.gitaconnect.app.feed
 
 import android.util.Log

@@ -12,6 +12,7 @@ import androidx.media3.exoplayer.ExoPlayer
  *   val player = VideoPlayerPool.getPlayer(context)   // borrow
  *   VideoPlayerPool.returnPlayer(player)              // return when done
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 object VideoPlayerPool {
 
     const val maxPoolSize = 5

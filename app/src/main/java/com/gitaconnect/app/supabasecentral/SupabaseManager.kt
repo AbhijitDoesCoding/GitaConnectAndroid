@@ -1,4 +1,6 @@
+@file:Suppress("SpellCheckingInspection")
 package com.gitaconnect.app.supabasecentral
+
 
 import com.gitaconnect.app.feed.FeedItem
 import io.github.jan.supabase.SupabaseClient
@@ -6,6 +8,19 @@ import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth
 import io.github.jan.supabase.postgrest.Postgrest
 import io.github.jan.supabase.postgrest.postgrest
+import io.ktor.client.HttpClient
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.request.header
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.client.call.body
+import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
+import com.gitaconnect.app.mentor.SarvamEdgeRequest
+import com.gitaconnect.app.mentor.SarvamChatResponse
 
 /**
  * Singleton manager for the Supabase client.
@@ -31,10 +46,40 @@ object SupabaseManager {
         return client.postgrest.from("feed_items").select().decodeList<FeedItem>()
     }
 
+    // Define Ktor HttpClient for direct REST API calls
+    private val httpClient = HttpClient(Android) {
+        install(ContentNegotiation) {
+            json(Json {
+                ignoreUnknownKeys = true
+                isLenient = true
+            })
+        }
+    }
+
     /**
-     * Placeholder for future Edge Function integration via POST request.
+     * Calls the Sarvam AI edge function to get a response.
      */
-    suspend fun callSarvamAI() {
-        // TODO: Implement Edge Function call using `client.functions` or Ktor
+    suspend fun callSarvamAI(
+        messages: List<Map<String, String>>,
+        temperature: Double = 0.3,
+        language: String = "en-IN",
+        model: String = "sarvam-105b"
+    ): SarvamChatResponse {
+        val requestBody = SarvamEdgeRequest(
+            messages = messages,
+            temperature = temperature,
+            language = language,
+            model = model
+        )
+
+        // The edge function URL
+        val url = "${SUPABASE_URL}/functions/v1/sarvam-ai"
+
+        return httpClient.post(url) {
+            contentType(ContentType.Application.Json)
+            header("Authorization", "Bearer ${SUPABASE_KEY}")
+            header("apikey", SUPABASE_KEY)
+            setBody(requestBody)
+        }.body()
     }
 }

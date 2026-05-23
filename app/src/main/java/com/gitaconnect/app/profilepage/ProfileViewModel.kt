@@ -1,3 +1,4 @@
+@file:Suppress("SpellCheckingInspection")
 package com.gitaconnect.app.profilepage
 
 import androidx.lifecycle.ViewModel
@@ -10,7 +11,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import io.github.jan.supabase.auth.auth
-import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.auth.providers.builtin.OTP
 import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.postgrest.postgrest

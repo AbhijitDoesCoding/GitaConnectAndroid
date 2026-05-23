@@ -30,6 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.gitaconnect.app.profilepage.*
 import com.gitaconnect.app.feed.FeedScreen
 import com.gitaconnect.app.authentication.LoginScreen
+import com.gitaconnect.app.mentor.MentorScreen
 
 sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
     object Home : BottomNavItem("home", "Home", Icons.Filled.Home)
@@ -94,7 +95,7 @@ fun MainScreen() {
             modifier = Modifier.padding(innerPadding).fillMaxSize()
         ) {
             composable(BottomNavItem.Home.route) { PlaceholderScreen("Home") }
-            composable(BottomNavItem.Mentor.route) { PlaceholderScreen("Gita Mentor") }
+            composable(BottomNavItem.Mentor.route) { MentorScreen() }
             composable(BottomNavItem.Feed.route) { FeedScreen() }
             composable(BottomNavItem.Profile.route) {
                 val profileViewModel: ProfileViewModel = viewModel()

@@ -1,3 +1,4 @@
+@file:Suppress("SpellCheckingInspection")
 package com.gitaconnect.app.feed
 
 import android.content.Context
@@ -9,12 +10,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.VerticalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -33,7 +31,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -63,6 +60,7 @@ import kotlinx.coroutines.launch
 // ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 fun FeedScreen(viewModel: FeedViewModel = viewModel()) {
     val context = LocalContext.current
@@ -128,6 +126,7 @@ fun FeedScreen(viewModel: FeedViewModel = viewModel()) {
 // ---------------------------------------------------------------------------
 
 @OptIn(ExperimentalMaterial3Api::class)
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 @Composable
 private fun FeedPageItem(
     item: FeedItem,
@@ -138,7 +137,7 @@ private fun FeedPageItem(
 ) {
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var showSheet by remember { mutableStateOf(false) }
+    val showSheet = remember { mutableStateOf(false) }
 
     // ---- Obtain a player from the pool ----
     val player = remember {
@@ -252,7 +251,7 @@ private fun FeedPageItem(
             IconButton(
                 onClick = {
                     if (!item.learnings.isNullOrBlank()) {
-                        scope.launch { showSheet = true }
+                        scope.launch { showSheet.value = true }
                     }
                 },
                 modifier = Modifier.size(52.dp)
@@ -280,9 +279,9 @@ private fun FeedPageItem(
     }
 
     // ---- Learnings ModalBottomSheet ----
-    if (showSheet) {
+    if (showSheet.value) {
         ModalBottomSheet(
-            onDismissRequest = { showSheet = false },
+            onDismissRequest = { showSheet.value = false },
             sheetState = sheetState,
             containerColor = Color(0xFF1C1C1E)
         ) {

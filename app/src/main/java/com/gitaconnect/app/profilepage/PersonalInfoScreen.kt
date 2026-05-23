@@ -25,7 +25,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +34,6 @@ fun PersonalInfoScreen(
 ) {
     val userProfile by viewModel.userProfile.collectAsState()
     val scrollState = rememberScrollState()
-    val coroutineScope = rememberCoroutineScope() // RememberCoroutineScope can be imported but let's rememberCoroutineScope() directly
 
     // Local state for editing mode
     var isEditing by remember { mutableStateOf(false) }
