@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -54,9 +55,17 @@ fun MentorScreen(modifier: Modifier = Modifier, viewModel: MentorViewModel = vie
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize(),
-        containerColor = BackgroundCream,
+    Box(modifier = modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_book),
+            contentDescription = "Background",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
                 title = {
@@ -96,7 +105,7 @@ fun MentorScreen(modifier: Modifier = Modifier, viewModel: MentorViewModel = vie
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White.copy(alpha = 0.8f))
             )
         },
         bottomBar = {
@@ -119,6 +128,7 @@ fun MentorScreen(modifier: Modifier = Modifier, viewModel: MentorViewModel = vie
             }
             item { Spacer(modifier = Modifier.height(16.dp)) }
         }
+    }
     }
 }
 

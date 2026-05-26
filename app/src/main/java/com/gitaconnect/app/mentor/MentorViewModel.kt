@@ -25,6 +25,20 @@ class MentorViewModel : ViewModel() {
         "Punjabi", "Odia"
     )
 
+    private val languageCodes = mapOf(
+        "English" to "en-IN",
+        "Hindi" to "hi-IN",
+        "Tamil" to "ta-IN",
+        "Telugu" to "te-IN",
+        "Kannada" to "kn-IN",
+        "Malayalam" to "ml-IN",
+        "Marathi" to "mr-IN",
+        "Gujarati" to "gu-IN",
+        "Bengali" to "bn-IN",
+        "Punjabi" to "pa-IN",
+        "Odia" to "or-IN"
+    )
+
     init {
         loadInitialMessages()
     }
@@ -69,7 +83,8 @@ class MentorViewModel : ViewModel() {
             return
         }
 
-        val responseText = SarvamAIService.getCompletion(history, currentLanguage.value)
+        val languageCode = languageCodes[_currentLanguage.value] ?: "en-IN"
+        val responseText = SarvamAIService.getCompletion(history, languageCode)
         removeThinkingMessage()
 
         if (responseText != null) {

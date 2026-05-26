@@ -1,6 +1,5 @@
 package com.gitaconnect.app
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -15,28 +14,36 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.runtime.collectAsState
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.gitaconnect.app.profilepage.*
-import com.gitaconnect.app.feed.FeedScreen
 import com.gitaconnect.app.authentication.LoginScreen
+import com.gitaconnect.app.feed.FeedScreen
+import com.gitaconnect.app.library.models.Chapter
+import com.gitaconnect.app.library.models.Verse
+import com.gitaconnect.app.library.ui.LibraryHomeScreen
+import com.gitaconnect.app.library.ui.ReadVerseScreen
+import com.gitaconnect.app.library.ui.VerseListScreen
+import com.gitaconnect.app.library.viewmodel.GitaLibraryViewModel
 import com.gitaconnect.app.mentor.MentorScreen
+import com.gitaconnect.app.profilepage.*
 
 sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
-    object Home : BottomNavItem("home", "Home", Icons.Filled.Home)
-    object Mentor : BottomNavItem("mentor", "Gita Mentor", Icons.Filled.Email)
-    object Feed : BottomNavItem("feed", "Feed", Icons.Filled.PlayArrow)
-    object Profile : BottomNavItem("profile", "Profile", Icons.Filled.Person)
+    object Home    : BottomNavItem("home",    "Home",        Icons.Filled.Home)
+    object Mentor  : BottomNavItem("mentor",  "Gita Mentor", Icons.Filled.Email)
+    object Feed    : BottomNavItem("feed",    "Feed",        Icons.Filled.PlayArrow)
+    object Profile : BottomNavItem("profile", "Profile",     Icons.Filled.Person)
 }
 
 @Composable
@@ -67,21 +74,18 @@ fun MainScreen() {
                         selected = currentRoute == item.route,
                         colors = NavigationBarItemDefaults.colors(
                             unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                            unselectedTextColor = Color.White.copy(alpha = 0.6f),
-                            selectedIconColor = Color.White,
-                            selectedTextColor = Color.White,
-                            indicatorColor = Color.Transparent
+                            unselectedTextColor  = Color.White.copy(alpha = 0.6f),
+                            selectedIconColor    = Color.White,
+                            selectedTextColor    = Color.White,
+                            indicatorColor       = Color.Transparent
                         ),
                         onClick = {
                             navController.navigate(item.route) {
-                                // Pop up to the start destination of the graph
                                 popUpTo(navController.graph.findStartDestination().id) {
                                     saveState = true
                                 }
-                                // Avoid multiple copies of the same destination
                                 launchSingleTop = true
-                                // Restore state when reselecting a previously selected item
-                                restoreState = true
+                                restoreState    = true
                             }
                         }
                     )
@@ -92,33 +96,82 @@ fun MainScreen() {
         NavHost(
             navController = navController,
             startDestination = BottomNavItem.Home.route,
-            modifier = Modifier.padding(innerPadding).fillMaxSize()
+            modifier = Modifier
+                .padding(innerPadding)
+                .fillMaxSize()
         ) {
-            composable(BottomNavItem.Home.route) { PlaceholderScreen("Home") }
+            composable(BottomNavItem.Home.route)   { HomeLibraryFlow() }
             composable(BottomNavItem.Mentor.route) { MentorScreen() }
-            composable(BottomNavItem.Feed.route) { FeedScreen() }
+            composable(BottomNavItem.Feed.route)   { FeedScreen() }
             composable(BottomNavItem.Profile.route) {
                 val profileViewModel: ProfileViewModel = viewModel()
                 val currentScreen by profileViewModel.currentScreen.collectAsState()
-                
+
                 when (currentScreen) {
-                    Screen.PROFILE -> ProfileScreen(viewModel = profileViewModel)
-                    Screen.LOGIN -> LoginScreen(viewModel = profileViewModel)
+                    Screen.PROFILE       -> ProfileScreen(viewModel = profileViewModel)
+                    Screen.LOGIN         -> LoginScreen(viewModel = profileViewModel)
                     Screen.PERSONAL_INFO -> PersonalInfoScreen(viewModel = profileViewModel)
-                    Screen.LIKED -> LikedScreen(viewModel = profileViewModel)
-                    Screen.STATS -> StatsScreen(viewModel = profileViewModel)
+                    Screen.LIKED         -> LikedScreen(viewModel = profileViewModel)
+                    Screen.STATS         -> StatsScreen(viewModel = profileViewModel)
                     Screen.ACCESSIBILITY -> AccessibilityScreen(viewModel = profileViewModel)
                     Screen.NOTIFICATIONS -> NotificationsScreen(viewModel = profileViewModel)
-                    Screen.ABOUT -> AboutScreen(viewModel = profileViewModel)
+                    Screen.ABOUT         -> AboutScreen(viewModel = profileViewModel)
                 }
             }
         }
     }
 }
 
+// ---------------------------------------------------------------------------
+// Nested Library navigation flow (Home tab)
+// ---------------------------------------------------------------------------
+
 @Composable
-fun PlaceholderScreen(title: String) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = "$title (Under Construction)")
+fun HomeLibraryFlow() {
+    val libraryNavController = rememberNavController()
+    val gitaViewModel: GitaLibraryViewModel = viewModel()
+
+    // Shared state passed between library screens (avoids Parcelable/serialization)
+    var selectedChapter by remember { mutableStateOf<Chapter?>(null) }
+    var selectedVerse   by remember { mutableStateOf<Verse?>(null) }
+    var selectedVerseList by remember { mutableStateOf<List<Verse>>(emptyList()) }
+
+    NavHost(
+        navController = libraryNavController,
+        startDestination = "library_home"
+    ) {
+        composable("library_home") {
+            LibraryHomeScreen(
+                viewModel = gitaViewModel,
+                onChapterClick = { chapter ->
+                    selectedChapter = chapter
+                    libraryNavController.navigate("verse_list")
+                }
+            )
+        }
+        composable("verse_list") {
+            selectedChapter?.let { chapter ->
+                VerseListScreen(
+                    chapter = chapter,
+                    viewModel = gitaViewModel,
+                    onVerseClick = { verse, allVerses ->
+                        selectedVerse = verse
+                        selectedVerseList = allVerses
+                        libraryNavController.navigate("read_verse")
+                    },
+                    onBack = { libraryNavController.popBackStack() }
+                )
+            }
+        }
+        composable("read_verse") {
+            val verse = selectedVerse
+            if (verse != null) {
+                ReadVerseScreen(
+                    initialVerse = verse,
+                    allVerses    = selectedVerseList,
+                    onBack       = { libraryNavController.popBackStack() }
+                )
+            }
+        }
     }
 }
