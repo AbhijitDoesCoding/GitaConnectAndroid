@@ -1,6 +1,7 @@
 package com.gitaconnect.app.mentor
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,7 +58,7 @@ fun MentorScreen(modifier: Modifier = Modifier, viewModel: MentorViewModel = vie
 
     Box(modifier = modifier.fillMaxSize()) {
         Image(
-            painter = painterResource(id = R.drawable.bg_book),
+            painter = painterResource(id = R.drawable.bg_beige22),
             contentDescription = "Background",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
@@ -67,46 +68,49 @@ fun MentorScreen(modifier: Modifier = Modifier, viewModel: MentorViewModel = vie
             modifier = Modifier.fillMaxSize(),
             containerColor = Color.Transparent,
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = "Gita Mentor",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextDarkColor
-                        )
-                        Text(
-                            text = "Seek Wisdom Now",
-                            fontSize = 14.sp,
-                            color = TextDarkColor.copy(alpha = 0.7f)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = TextDarkColor)
-                    }
-                    var expanded by remember { mutableStateOf(false) }
-                    Box {
-                        IconButton(onClick = { expanded = true }) {
-                            Icon(Icons.Default.Translate, contentDescription = "Translate", tint = TextDarkColor)
+            Column {
+                TopAppBar(
+                    title = {
+                        Column {
+                            Text(
+                                text = "Gita Mentor",
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextDarkColor
+                            )
+                            Text(
+                                text = "Seek Wisdom Now",
+                                fontSize = 14.sp,
+                                color = TextDarkColor.copy(alpha = 0.7f)
+                            )
                         }
-                        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-                            viewModel.languages.forEachIndexed { index, language ->
-                                DropdownMenuItem(
-                                    text = { Text(language) },
-                                    onClick = {
-                                        viewModel.setLanguage(index)
-                                        expanded = false
-                                    }
-                                )
+                    },
+                    actions = {
+                        IconButton(onClick = { viewModel.refresh() }) {
+                            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = TextDarkColor)
+                        }
+                        var expanded by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { expanded = true }) {
+                                Icon(Icons.Default.Translate, contentDescription = "Translate", tint = TextDarkColor)
+                            }
+                            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                                viewModel.languages.forEachIndexed { index, language ->
+                                    DropdownMenuItem(
+                                        text = { Text(language) },
+                                        onClick = {
+                                            viewModel.setLanguage(index)
+                                            expanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White.copy(alpha = 0.8f))
-            )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFFFFFDF9))
+                )
+                HorizontalDivider(color = Color(0xFFE0D9CC), thickness = 1.dp)
+            }
         },
         bottomBar = {
             ChatInputBar(onSendMessage = { text ->
@@ -250,8 +254,8 @@ fun ChatInputBar(onSendMessage: (String) -> Unit) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color(0xFFEFEFEF), shape = RoundedCornerShape(24.dp))
-                .border(1.dp, Color.White, RoundedCornerShape(24.dp))
+                .background(Color(0xFFFFFDF9), shape = RoundedCornerShape(24.dp))
+                .border(BorderStroke(1.dp, Color(0xFFE8DFC8)), RoundedCornerShape(24.dp))
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {

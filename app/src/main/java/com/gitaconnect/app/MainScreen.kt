@@ -39,6 +39,10 @@ import com.gitaconnect.app.library.viewmodel.GitaLibraryViewModel
 import com.gitaconnect.app.mentor.MentorScreen
 import com.gitaconnect.app.profilepage.*
 
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.unit.dp
+
 sealed class BottomNavItem(val route: String, val title: String, val icon: ImageVector) {
     object Home    : BottomNavItem("home",    "Home",        Icons.Filled.Home)
     object Mentor  : BottomNavItem("mentor",  "Gita Mentor", Icons.Filled.Email)
@@ -58,37 +62,43 @@ fun MainScreen() {
     )
 
     Scaffold(
-        containerColor = Color.Black,
+        containerColor = Color(0xFFFAF7F0), // GitaBeigeLight to fix black screen transitions
         bottomBar = {
-            NavigationBar(
-                containerColor = Color.Black.copy(alpha = 0.4f),
-                contentColor = Color.White
-            ) {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentRoute = navBackStackEntry?.destination?.route
+            Column {
+                HorizontalDivider(
+                    color = Color(0xFFE0D9CC), // GitaDivider
+                    thickness = 1.dp
+                )
+                NavigationBar(
+                    containerColor = Color(0xFFFFFDF9), // WarmBeigeLight solid bottom bar
+                    contentColor = Color(0xFF2C251C) // TextDark
+                ) {
+                    val navBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = navBackStackEntry?.destination?.route
 
-                items.forEach { item ->
-                    NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = item.title) },
-                        label = { Text(item.title) },
-                        selected = currentRoute == item.route,
-                        colors = NavigationBarItemDefaults.colors(
-                            unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                            unselectedTextColor  = Color.White.copy(alpha = 0.6f),
-                            selectedIconColor    = Color.White,
-                            selectedTextColor    = Color.White,
-                            indicatorColor       = Color.Transparent
-                        ),
-                        onClick = {
-                            navController.navigate(item.route) {
-                                popUpTo(navController.graph.findStartDestination().id) {
-                                    saveState = true
+                    items.forEach { item ->
+                        NavigationBarItem(
+                            icon = { Icon(item.icon, contentDescription = item.title) },
+                            label = { Text(item.title) },
+                            selected = currentRoute == item.route,
+                            colors = NavigationBarItemDefaults.colors(
+                                unselectedIconColor = Color(0xFF7A7063), // TextMuted
+                                unselectedTextColor  = Color(0xFF7A7063), // TextMuted
+                                selectedIconColor    = Color(0xFFE27D60), // GitaSaffron
+                                selectedTextColor    = Color(0xFFE27D60), // GitaSaffron
+                                indicatorColor       = Color.Transparent
+                            ),
+                            onClick = {
+                                navController.navigate(item.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
+                                    launchSingleTop = true
+                                    restoreState    = true
                                 }
-                                launchSingleTop = true
-                                restoreState    = true
                             }
-                        }
-                    )
+                        )
+                    }
                 }
             }
         }

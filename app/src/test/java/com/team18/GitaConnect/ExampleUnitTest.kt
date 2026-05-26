@@ -11,7 +11,21 @@ import org.junit.Assert.*
  */
 class ExampleUnitTest {
     @Test
-    fun addition_isCorrect() {
-        assertEquals(4, 2 + 2)
+    fun testParseChapters() {
+        val file = java.io.File("src/main/assets/Bhagavad Gita.json")
+        println("File path: ${file.absolutePath}, exists: ${file.exists()}")
+        val jsonString = file.readText()
+        val json = kotlinx.serialization.json.Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            coerceInputValues = true
+        }
+        try {
+            val root = json.decodeFromString<com.gitaconnect.app.library.models.GitaRoot>(jsonString)
+            println("Successfully parsed ${root.chapters.size} chapters!")
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
+        }
     }
 }

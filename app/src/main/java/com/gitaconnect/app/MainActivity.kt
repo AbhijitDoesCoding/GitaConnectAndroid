@@ -17,6 +17,7 @@ import com.gitaconnect.app.ui.theme.GitaConnectTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        com.gitaconnect.app.library.services.ReadingProgressManager.init(this)
         enableEdgeToEdge()
         setContent {
             GitaConnectTheme {

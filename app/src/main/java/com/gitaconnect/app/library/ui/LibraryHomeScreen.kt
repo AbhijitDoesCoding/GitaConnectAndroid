@@ -5,6 +5,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -32,6 +34,11 @@ import com.gitaconnect.app.R
 import com.gitaconnect.app.library.models.Chapter
 import com.gitaconnect.app.library.viewmodel.GitaLibraryViewModel
 import com.gitaconnect.app.library.viewmodel.GitaUiState
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+
+import androidx.compose.foundation.BorderStroke
 
 // ---------------------------------------------------------------------------
 // Design tokens (shared across library screens via package-level vals)
@@ -57,20 +64,48 @@ fun LibraryHomeScreen(
     onChapterClick: (Chapter) -> Unit
 ) {
     val state by viewModel.chaptersState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshTrigger++
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         Image(
-            painter = painterResource(id = R.drawable.bg_book),
+            painter = painterResource(id = R.drawable.bg_beige22),
             contentDescription = "Background",
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
 
         Column(modifier = Modifier.fillMaxSize()) {
-            // ---- Gradient Header ----
-            GitaLibraryHeader()
+            // ---- iOS Style Simple Top Header ----
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Bhagavad Gita",
+                    color = GitaCharcoal,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp
+                )
+            }
 
             // ---- Content ----
             when (val s = state) {
@@ -85,7 +120,7 @@ fun LibraryHomeScreen(
                     }
                 }
                 is GitaUiState.Success -> {
-                    ChapterList(chapters = s.data, onChapterClick = onChapterClick)
+                    ChapterList(chapters = s.data, refreshTrigger = refreshTrigger, onChapterClick = onChapterClick)
                 }
             }
         }
@@ -93,78 +128,132 @@ fun LibraryHomeScreen(
 }
 
 @Composable
-private fun GitaLibraryHeader() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp)
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF3D2B1F),
-                        Color(0xFF7B4F2E),
-                        GitaSaffron.copy(alpha = 0.85f)
-                    )
-                )
-            )
-            .padding(horizontal = 24.dp, vertical = 20.dp),
-        contentAlignment = Alignment.BottomStart
+fun ReadingStatsHeader(refreshTrigger: Int) {
+    val stats = remember(refreshTrigger) {
+        com.gitaconnect.app.library.services.ReadingProgressManager.getStats()
+    }
+    
+    val statusText = when {
+        stats.totalVerses == 0 -> "Fresh start"
+        stats.totalVerses < 10 -> "Keep going!"
+        stats.totalVerses < 50 -> "Steady progress"
+        stats.totalVerses < 200 -> "Spiritual path"
+        else -> "Gita Devotee"
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, Color(0xFFE8DFC8)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF9)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.MenuBook,
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(90.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(end = 120.dp) // Avoid book image overlap
+                ) {
+                    Text(
+                        text = "Reading Progress",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = GitaCharcoalSoft
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = statusText,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = GitaCharcoal
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${stats.totalVerses} Verses · ${stats.totalChapters} Chapters",
+                        fontSize = 14.sp,
+                        color = GitaCharcoalSoft
+                    )
+                }
+
+                Image(
+                    painter = painterResource(id = R.drawable.bg_book),
                     contentDescription = null,
-                    tint = Color(0xFFFFF8EE),
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(Modifier.width(10.dp))
-                Text(
-                    text = "श्रीमद्भगवद्गीता",
-                    color = Color(0xFFFFF8EE).copy(alpha = 0.75f),
-                    fontSize = 14.sp,
-                    fontStyle = FontStyle.Italic,
-                    letterSpacing = 0.5.sp
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .size(width = 110.dp, height = 80.dp),
+                    contentScale = ContentScale.Fit
                 )
             }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "Bhagavad Gita",
-                color = Color(0xFFFFF8EE),
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.5).sp
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            HorizontalDivider(
+                color = GitaDivider,
+                thickness = 1.dp
             )
-            Text(
-                text = "18 Chapters · Sacred Knowledge",
-                color = Color(0xFFFFF8EE).copy(alpha = 0.65f),
-                fontSize = 13.sp,
-                letterSpacing = 0.3.sp
-            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                StatBlock(value = "${stats.today}", label = "Today")
+                StatBlock(value = "${stats.week}", label = "This Week")
+                StatBlock(value = "${stats.month}", label = "This Month")
+            }
         }
+    }
+}
+
+@Composable
+private fun StatBlock(value: String, label: String) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = value,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            color = GitaCharcoal
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = GitaCharcoalSoft
+        )
     }
 }
 
 @Composable
 private fun ChapterList(
     chapters: List<Chapter>,
+    refreshTrigger: Int,
     onChapterClick: (Chapter) -> Unit
 ) {
     LazyColumn(
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        item {
+            ReadingStatsHeader(refreshTrigger = refreshTrigger)
+            Spacer(Modifier.height(4.dp))
+        }
+        
         itemsIndexed(chapters) { index, chapter ->
-            var visible by remember { mutableStateOf(false) }
-            LaunchedEffect(Unit) { visible = true }
-
-            AnimatedVisibility(
-                visible = visible,
-                enter = fadeIn(tween(300 + index * 40)) +
-                        slideInVertically(tween(300 + index * 40)) { it / 4 }
-            ) {
-                ChapterCard(chapter = chapter, onClick = { onChapterClick(chapter) })
-            }
+            ChapterCard(chapter = chapter, onClick = { onChapterClick(chapter) })
         }
         item { Spacer(Modifier.height(16.dp)) }
     }
@@ -176,8 +265,9 @@ private fun ChapterCard(chapter: Chapter, onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.7f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+        border = BorderStroke(1.dp, Color(0xFFE8DFC8)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF9)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier

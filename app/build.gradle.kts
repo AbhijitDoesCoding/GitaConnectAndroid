@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.ui)
+    implementation(libs.media3.session)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.supabase.postgrest)
