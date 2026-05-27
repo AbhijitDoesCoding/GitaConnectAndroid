@@ -1,0 +1,192 @@
+{
+  "veryUnpleasant": [
+    {
+      "id": "vu_1",
+      "question": "Right now, which emotion feels strongest in you?",
+      "options": [
+        "I feel crushed by hopelessness and despair.",
+        "I am burning with anger and frustration.",
+        "I am lost in deep grief and sadness."
+      ]
+    },
+    {
+      "id": "vu_2",
+      "question": "When you check in with yourself, how does this pain feel?",
+      "options": [
+        "I feel trapped with no clear way out.",
+        "I feel like I am falling apart inside.",
+        "I feel completely numb and empty right now."
+      ]
+    },
+    {
+      "id": "vu_3",
+      "question": "In this low moment, what do you need the most right now?",
+      "options": [
+        "I just need the noise in my head to stop.",
+        "I want to run away from everything today.",
+        "I desperately need someone to really hear me."
+      ]
+    },
+    {
+      "id": "vu_4",
+      "question": "Where do you feel this heaviness most in your body?",
+      "options": [
+        "It sits like a heavy stone on my chest.",
+        "It feels like a tight knot in my stomach.",
+        "It is like a fog clouding my whole mind."
+      ]
+    }
+  ],
+  "unpleasant": [
+    {
+      "id": "u_1",
+      "question": "What is affecting your peace the most right now?",
+      "options": [
+        "I am anxious about what the future holds.",
+        "I feel resentful about a specific situation.",
+        "I am just physically and mentally drained."
+      ]
+    },
+    {
+      "id": "u_2",
+      "question": "If this feeling could speak, what would it tell you?",
+      "options": [
+        "It says that I am not good enough.",
+        "It says I am overwhelmed by my tasks.",
+        "It says I am lonely and misunderstood."
+      ]
+    },
+    {
+      "id": "u_3",
+      "question": "Where does your mind keep going right now?",
+      "options": [
+        "I keep replaying a mistake from the past.",
+        "I am comparing myself to everyone else.",
+        "I am struggling to make a hard choice."
+      ]
+    },
+    {
+      "id": "u_4",
+      "question": "What do you feel is missing for you right now?",
+      "options": [
+        "I can't find the energy to start working.",
+        "I feel unsupported by the people around me.",
+        "I feel confused about my purpose right now."
+      ]
+    }
+  ],
+  "neutral": [
+    {
+      "id": "n_1",
+      "question": "You seem emotionally neutral right now. How does this moment feel?",
+      "options": [
+        "I feel a bit blank and slightly bored.",
+        "I am just waiting for something to happen.",
+        "I feel a quiet, open sense of stillness."
+      ]
+    },
+    {
+      "id": "n_2",
+      "question": "With this steady mood, where do you want to direct your energy?",
+      "options": [
+        "I need a spark to get me moving.",
+        "I want to turn this calm into peace.",
+        "I am distracted and just need to focus."
+      ]
+    },
+    {
+      "id": "n_3",
+      "question": "How does everything around you feel at this moment?",
+      "options": [
+        "Everything feels a bit distant and dreamlike.",
+        "It feels like just another ordinary day.",
+        "I feel like I am just watching life go by."
+      ]
+    },
+    {
+      "id": "n_4",
+      "question": "If you wanted to shift your mood slightly, what would help most?",
+      "options": [
+        "I need a challenge to wake me up.",
+        "I need some rest before I engage again.",
+        "I am happy staying right here for now."
+      ]
+    }
+  ],
+  "pleasant": [
+    {
+      "id": "p_1",
+      "question": "You are feeling good. What is contributing most to this mood?",
+      "options": [
+        "I feel relieved that a burden has lifted.",
+        "I feel confident in who I am today.",
+        "I feel connected to the people I love."
+      ]
+    },
+    {
+      "id": "p_2",
+      "question": "How is this positive mood showing up in your body?",
+      "options": [
+        "I feel physically relaxed and at ease.",
+        "I feel excited about what is coming next.",
+        "I feel grateful for the small things today."
+      ]
+    },
+    {
+      "id": "p_3",
+      "question": "From this positive state, how do your current challenges look?",
+      "options": [
+        "They look small and manageable to me now.",
+        "I see them as chances to learn and grow.",
+        "I feel ready to face them head-on."
+      ]
+    },
+    {
+      "id": "p_4",
+      "question": "What kind of good feeling are you experiencing most right now?",
+      "options": [
+        "I feel satisfied with a job well done.",
+        "I feel safe, supported, and taken care of.",
+        "I feel optimistic that things will work out."
+      ]
+    }
+  ],
+  "veryPleasant": [
+    {
+      "id": "vp_1",
+      "question": "Your mood is very high right now. How would you describe it?",
+      "options": [
+        "I feel overflowing gratitude towards the Divine.",
+        "I feel a powerful surge of capability.",
+        "I feel a deep, unshakeable sense of bliss."
+      ]
+    },
+    {
+      "id": "vp_2",
+      "question": "How would you like to use this strong positive energy?",
+      "options": [
+        "I want to share this joy with others.",
+        "I want to create something beautiful today.",
+        "I want to offer this feeling in prayer."
+      ]
+    },
+    {
+      "id": "vp_3",
+      "question": "In this uplifted state, what feels most possible to you?",
+      "options": [
+        "I feel I can love and forgive freely.",
+        "I see my life with perfect clarity.",
+        "I feel deeply connected to the universe."
+      ]
+    },
+    {
+      "id": "vp_4",
+      "question": "If you describe this feeling in one sentence, what would you say?",
+      "options": [
+        "I feel a sense of total freedom and liberation.",
+        "I feel completely in harmony with everything.",
+        "I feel a deep sense of sacred devotion."
+      ]
+    }
+  ]
+}

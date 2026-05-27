@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -28,15 +29,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.gitaconnect.app.R
 import com.gitaconnect.app.library.models.Chapter
+import com.gitaconnect.app.library.models.Verse
 import com.gitaconnect.app.library.viewmodel.GitaLibraryViewModel
 import com.gitaconnect.app.library.viewmodel.GitaUiState
+import com.gitaconnect.app.library.services.MoodProgressManager
+import com.gitaconnect.app.library.repository.GitaRepository
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.launch
 
 import androidx.compose.foundation.BorderStroke
 
@@ -54,18 +62,21 @@ val GitaDivider      = Color(0xFFE0D9CC)
 val GitaGold         = Color(0xFFB8860B)
 
 // ---------------------------------------------------------------------------
-// Library Home Screen
-// No nested Scaffold — the parent MainScreen Scaffold already handles insets.
+// Library Home Screen (Primary Dashboard)
 // ---------------------------------------------------------------------------
 
 @Composable
 fun LibraryHomeScreen(
-    viewModel: GitaLibraryViewModel = viewModel(),
-    onChapterClick: (Chapter) -> Unit
+    onLibraryClick: () -> Unit,
+    onChallengesClick: () -> Unit,
+    onMantrasClick: () -> Unit,
+    onVerseClick: (Verse, List<Verse>) -> Unit
 ) {
-    val state by viewModel.chaptersState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
     var refreshTrigger by remember { mutableIntStateOf(0) }
+    var showDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -107,6 +118,176 @@ fun LibraryHomeScreen(
                 )
             }
 
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                SelectMoodCard(
+                    refreshTrigger = refreshTrigger,
+                    onSelectMoodClick = { showDialog = true },
+                    onVerseClick = onVerseClick
+                )
+
+                DailySadhnaCard(
+                    onCardClick = onChallengesClick
+                )
+
+                BhagavadGitaLibraryCard(onClick = onLibraryClick)
+
+                MantraListCard(
+                    onCardClick = onMantrasClick,
+                    onMantraClick = { /* TODO: Implement Mantra Play logic when audio service is ready */ }
+                )
+            }
+        }
+
+        if (showDialog) {
+            MoodSelectionDialog(
+                onDismiss = { showDialog = false },
+                onComplete = { chapter, verseId ->
+                    showDialog = false
+                    refreshTrigger++
+                    coroutineScope.launch {
+                        val repository = GitaRepository(context)
+                        val verses = repository.getVersesForChapter(chapter)
+                        val verse = verses.firstOrNull { it.verseId == verseId }
+                        if (verse != null) {
+                            onVerseClick(verse, verses)
+                        }
+                    }
+                }
+            )
+        }
+    }
+}
+
+@Composable
+fun BhagavadGitaLibraryCard(onClick: () -> Unit) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, Color(0xFFE8DFC8)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF9)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 100.dp) // Avoid overlapping with the book image
+            ) {
+                Text(
+                    text = "Bhagavad Gita Library",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GitaCharcoal
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Dive into the sacred scripture. Explore all 18 chapters and 700 verses of timeless wisdom.",
+                    fontSize = 13.sp,
+                    color = GitaCharcoalSoft,
+                    lineHeight = 18.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(GitaSaffron.copy(alpha = 0.15f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "18 Chapters · 700 Verses",
+                        color = GitaSaffron,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Image(
+                painter = painterResource(id = R.drawable.bg_book),
+                contentDescription = null,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(width = 95.dp, height = 90.dp),
+                contentScale = ContentScale.Fit
+            )
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Chapters List Screen
+// ---------------------------------------------------------------------------
+
+@Composable
+fun GitaLibraryChaptersScreen(
+    viewModel: GitaLibraryViewModel = viewModel(),
+    onChapterClick: (Chapter) -> Unit,
+    onBack: () -> Unit
+) {
+    val state by viewModel.chaptersState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var refreshTrigger by remember { mutableIntStateOf(0) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshTrigger++
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Image(
+            painter = painterResource(id = R.drawable.bg_beige22),
+            contentDescription = "Background",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            // ---- iOS Style Top Bar with Back Button ----
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .statusBarsPadding()
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                        contentDescription = "Back",
+                        tint = GitaCharcoal
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Library",
+                    color = GitaCharcoal,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.5).sp
+                )
+            }
+
             // ---- Content ----
             when (val s = state) {
                 is GitaUiState.Loading -> {
@@ -120,7 +301,21 @@ fun LibraryHomeScreen(
                     }
                 }
                 is GitaUiState.Success -> {
-                    ChapterList(chapters = s.data, refreshTrigger = refreshTrigger, onChapterClick = onChapterClick)
+                    LazyColumn(
+                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        item {
+                            ReadingStatsHeader(refreshTrigger = refreshTrigger)
+                            Spacer(Modifier.height(4.dp))
+                        }
+                        
+                        itemsIndexed(s.data) { index, chapter ->
+                            ChapterCard(chapter = chapter, onClick = { onChapterClick(chapter) })
+                        }
+                        item { Spacer(Modifier.height(16.dp)) }
+                    }
                 }
             }
         }
@@ -238,24 +433,155 @@ private fun StatBlock(value: String, label: String) {
 }
 
 @Composable
-private fun ChapterList(
-    chapters: List<Chapter>,
+fun SelectMoodCard(
     refreshTrigger: Int,
-    onChapterClick: (Chapter) -> Unit
+    onSelectMoodClick: () -> Unit,
+    onVerseClick: (Verse, List<Verse>) -> Unit
 ) {
-    LazyColumn(
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    
+    val isCompleted by remember(refreshTrigger) { 
+        mutableStateOf(MoodProgressManager.isMoodCompletedToday()) 
+    }
+    val recommendedInfo by remember(refreshTrigger) {
+        mutableStateOf(MoodProgressManager.getRecommendedVerseInfo())
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        border = BorderStroke(1.dp, Color(0xFFE8DFC8)),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFDF9)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        item {
-            ReadingStatsHeader(refreshTrigger = refreshTrigger)
-            Spacer(Modifier.height(4.dp))
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            if (!isCompleted || recommendedInfo == null) {
+                Text(
+                    text = "How is your mood today?",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = GitaCharcoal
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Select your daily mood to get a recommended verse from the Bhagavad Gita.",
+                    fontSize = 13.sp,
+                    color = GitaCharcoalSoft,
+                    lineHeight = 18.sp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onSelectMoodClick,
+                    colors = ButtonDefaults.buttonColors(containerColor = GitaSaffron),
+                    modifier = Modifier.align(Alignment.Start)
+                ) {
+                    Text("Select Mood", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                val info = recommendedInfo!!
+                val moodLabel = when (info.moodKey) {
+                    "veryUnpleasant" -> "Very Unpleasant"
+                    "unpleasant" -> "Unpleasant"
+                    "neutral" -> "Neutral"
+                    "pleasant" -> "Pleasant"
+                    "veryPleasant" -> "Very Pleasant"
+                    else -> "Neutral"
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = "Today's Mood",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = GitaCharcoalSoft
+                        )
+                        Text(
+                            text = moodLabel,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GitaSaffron
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onSelectMoodClick,
+                        border = BorderStroke(1.dp, GitaSaffron),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = GitaSaffron),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                    ) {
+                        Text("Change", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = GitaDivider, thickness = 1.dp)
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Card(
+                    onClick = {
+                        coroutineScope.launch {
+                            val repository = GitaRepository(context)
+                            val verses = repository.getVersesForChapter(info.chapter)
+                            val verse = verses.firstOrNull { it.verseId == info.verseId }
+                            if (verse != null) {
+                                onVerseClick(verse, verses)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE8DFC8)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFAF7F0))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp)
+                    ) {
+                        Text(
+                            text = "Recommended Verse",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GitaSaffron,
+                            letterSpacing = 0.8.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Chapter ${info.chapter}, Verse ${info.verseId}",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GitaCharcoal
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = info.sanskrit,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = GitaCharcoal,
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                            lineHeight = 22.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Tap to read full verse...",
+                            fontSize = 11.sp,
+                            color = GitaCharcoalSoft,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
         }
-        
-        itemsIndexed(chapters) { index, chapter ->
-            ChapterCard(chapter = chapter, onClick = { onChapterClick(chapter) })
-        }
-        item { Spacer(Modifier.height(16.dp)) }
     }
 }
 
@@ -275,7 +601,6 @@ private fun ChapterCard(chapter: Chapter, onClick: () -> Unit) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Chapter number badge
             Box(
                 modifier = Modifier
                     .size(52.dp)

@@ -33,8 +33,11 @@ import com.gitaconnect.app.feed.FeedScreen
 import com.gitaconnect.app.library.models.Chapter
 import com.gitaconnect.app.library.models.Verse
 import com.gitaconnect.app.library.ui.LibraryHomeScreen
+import com.gitaconnect.app.library.ui.GitaLibraryChaptersScreen
 import com.gitaconnect.app.library.ui.ReadVerseScreen
 import com.gitaconnect.app.library.ui.VerseListScreen
+import com.gitaconnect.app.library.ui.ChallengesScreen
+import com.gitaconnect.app.library.ui.MantraLibraryScreen
 import com.gitaconnect.app.library.viewmodel.GitaLibraryViewModel
 import com.gitaconnect.app.mentor.MentorScreen
 import com.gitaconnect.app.profilepage.*
@@ -152,10 +155,31 @@ fun HomeLibraryFlow() {
     ) {
         composable("library_home") {
             LibraryHomeScreen(
+                onLibraryClick = {
+                    libraryNavController.navigate("chapter_list")
+                },
+                onChallengesClick = {
+                    libraryNavController.navigate("challenges")
+                },
+                onMantrasClick = {
+                    libraryNavController.navigate("mantras")
+                },
+                onVerseClick = { verse, allVerses ->
+                    selectedVerse = verse
+                    selectedVerseList = allVerses
+                    libraryNavController.navigate("read_verse")
+                }
+            )
+        }
+        composable("chapter_list") {
+            GitaLibraryChaptersScreen(
                 viewModel = gitaViewModel,
                 onChapterClick = { chapter ->
                     selectedChapter = chapter
                     libraryNavController.navigate("verse_list")
+                },
+                onBack = {
+                    libraryNavController.popBackStack()
                 }
             )
         }
@@ -182,6 +206,16 @@ fun HomeLibraryFlow() {
                     onBack       = { libraryNavController.popBackStack() }
                 )
             }
+        }
+        composable("challenges") {
+            ChallengesScreen(
+                onBack = { libraryNavController.popBackStack() }
+            )
+        }
+        composable("mantras") {
+            MantraLibraryScreen(
+                onBack = { libraryNavController.popBackStack() }
+            )
         }
     }
 }
