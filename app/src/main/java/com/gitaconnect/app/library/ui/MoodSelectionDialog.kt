@@ -45,8 +45,8 @@ fun MoodSelectionDialog(
 ) {
     var currentStep by remember { mutableIntStateOf(1) }
     
-    // Step 1: Slider score (1.0 to 10.0)
-    var score by remember { mutableFloatStateOf(5.0f) }
+    // Step 1: Slider intensity (0.0 to 1.0)
+    var intensity by remember { mutableFloatStateOf(0.5f) }
     
     // Step 2: Random question selected based on score
     var selectedQuestion by remember { mutableStateOf<MoodProgressManager.MoodQuestion?>(null) }
@@ -78,7 +78,8 @@ fun MoodSelectionDialog(
     // Initialize/pick a question when entering step 2
     LaunchedEffect(currentStep) {
         if (currentStep == 2 && selectedQuestion == null) {
-            selectedQuestion = MoodProgressManager.getQuestionForScore(score.toDouble())
+            val mappedScore = 1.0 + intensity.toDouble() * 9.0
+            selectedQuestion = MoodProgressManager.getQuestionForScore(mappedScore)
             selectedOptionIndex = null
         }
     }
@@ -205,8 +206,8 @@ fun MoodSelectionDialog(
                         ) { step ->
                             when (step) {
                                 1 -> Step1Content(
-                                    score = score,
-                                    onScoreChange = { score = it },
+                                    intensity = intensity,
+                                    onIntensityChange = { intensity = it },
                                     onNext = { currentStep = 2 }
                                 )
                                 2 -> Step2Content(
@@ -221,9 +222,10 @@ fun MoodSelectionDialog(
                                     onSubmit = {
                                         isLoading = true
                                         coroutineScope.launch {
+                                            val mappedScore = 1f + intensity * 9f
                                             performAIRecommendation(
                                                 context = context,
-                                                score = score,
+                                                score = mappedScore,
                                                 selectedQuestion = selectedQuestion,
                                                 selectedOptionIndex = selectedOptionIndex,
                                                 thoughtsText = thoughtsText,
@@ -248,19 +250,10 @@ fun MoodSelectionDialog(
 
 @Composable
 private fun Step1Content(
-    score: Float,
-    onScoreChange: (Float) -> Unit,
+    intensity: Float,
+    onIntensityChange: (Float) -> Unit,
     onNext: () -> Unit
 ) {
-    val level = MoodProgressManager.PleasantnessLevel.fromScore(score.toDouble())
-    val label = when (level) {
-        MoodProgressManager.PleasantnessLevel.VERY_UNPLEASANT -> "Very Unpleasant 😢"
-        MoodProgressManager.PleasantnessLevel.UNPLEASANT -> "Unpleasant 🙁"
-        MoodProgressManager.PleasantnessLevel.NEUTRAL -> "Neutral 😐"
-        MoodProgressManager.PleasantnessLevel.PLEASANT -> "Pleasant 🙂"
-        MoodProgressManager.PleasantnessLevel.VERY_PLEASANT -> "Very Pleasant 😇"
-    }
-
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -272,30 +265,13 @@ private fun Step1Content(
             color = GitaCharcoal,
             textAlign = TextAlign.Center
         )
-        Spacer(Modifier.height(12.dp))
-        Text(
-            text = "Score: ${"%.1f".format(score)}",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = GitaSaffron
+        Spacer(Modifier.height(32.dp))
+        
+        StateOfMindView(
+            intensity = intensity,
+            onIntensityChange = onIntensityChange
         )
-        Text(
-            text = label,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium,
-            color = GitaCharcoalSoft
-        )
-        Spacer(Modifier.height(24.dp))
-        Slider(
-            value = score,
-            onValueChange = onScoreChange,
-            valueRange = 1f..10f,
-            colors = SliderDefaults.colors(
-                thumbColor = GitaSaffron,
-                activeTrackColor = GitaSaffron,
-                inactiveTrackColor = GitaDivider
-            )
-        )
+        
         Spacer(Modifier.height(32.dp))
         Button(
             onClick = onNext,
